@@ -55,27 +55,24 @@ function addCart(){
 }
 
 function renderCart(cartApiData) {
-  // cartApiData 是整包：{ carts: [...], total, finalTotal }
+
   const carts = cartApiData.carts || [];
   const total = cartApiData.total || 0;
   const finalTotal = cartApiData.finalTotal || 0;
 
-  // 你原本用 shoopingCartDOM.innerHTML 塞 tr，所以空車也用 tr
+
   if (carts.length === 0) {
     shoopingCartDOM.innerHTML = `
       <tr>
         <td colspan="5">購物車內無任何商品，您可以點選上方商品加入購物車！</td>
       </tr>
     `;
-    // ✅ 如果你真的要變紅色，請用你既有 CSS class 去做，不要 inline style
-    // 例如：shoopingCartDOM.classList.add('text-danger')
     return;
   }
 
   const cartRows = carts.map((item) => {
     const product = item.product;
     const qty = item.quantity;
-
     return `
       <tr>
         <td>
@@ -85,7 +82,7 @@ function renderCart(cartApiData) {
           </div>
         </td>
         <td>NT$${product.price}</td>
-        <td>${qty}</td>
+        <td>${item.quantity}</td>
         <td>NT$${product.price * qty}</td>
         <td class="discardBtn">
           <a href="#" class="material-icons" data-id="${item.id}">
@@ -113,6 +110,11 @@ function renderCart(cartApiData) {
   shoopingCartDOM.innerHTML = cartRows + totalRow;
 }
 
+function getQuantity(productId) {
+  const item = (cartData.carts || []).find(c => c.product.id === productId);
+  return (item?.quantity || 0) + 1;
+}
+
 init();
 
 
@@ -132,7 +134,7 @@ productListElDOM.addEventListener('click', async (e)=>{
     const res = await axios.post(`${BASE_URL}/customer/${API_PATH}/carts`, {
     data: {
         productId,
-        quantity: 1
+        quantity: getQuantity(productId),
       }
     });
 
@@ -143,3 +145,34 @@ productListElDOM.addEventListener('click', async (e)=>{
   }
 });
 
+shoopingCartDOM.addEventListener('click', async (e) => {
+
+  const allBtn = e.target.closest('.discardAllBtn');
+  if (allBtn) {
+    e.preventDefault();
+    try {
+      await axios.delete(`${BASE_URL}/customer/${API_PATH}/carts`);
+      cartData = await fetchCart();
+      renderCart(cartData);
+    } catch (err) {
+      console.error('刪除所有購物車品項失敗', err.response?.data || err);
+    }
+    return;
+  }
+
+
+  const delBtn = e.target.closest('.material-icons');
+  if (!delBtn) return;
+  e.preventDefault();
+
+  const cartId = delBtn.dataset.id;
+  if (!cartId) return;
+
+  try {
+    await axios.delete(`${BASE_URL}/customer/${API_PATH}/carts/${cartId}`);
+    cartData = await fetchCart();
+    renderCart(cartData);
+  } catch (err) {
+    console.error('刪除單一品項失敗', err.response?.data || err);
+  }
+});
