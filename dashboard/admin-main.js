@@ -2,7 +2,9 @@ const BASE_URL = 'https://livejs-api.hexschool.io/api/livejs/v1';
 const API_PATH = 'ho';
 const ADMIN_TOKEN = '98X6tvEMbQSon1wN2Z2Y9Wqf8iF3';
 
-const orderTableDOM = document.querySelector('.orderPage-table')
+const orderTableDOM = document.querySelector('.orderPage-table');
+const discardAllBtnDOM = document.querySelector('.discardAllBtn');
+
 // C3.js
 let chart = c3.generate({
     bindto: '#chart', // HTML 元素綁定
@@ -43,43 +45,55 @@ async function init() {
     }
 };
 
-function renderOrders(dataToRender){
-    const ordersHTML = dataToRender.map((order) => {
-        return`
+function renderOrders(dataToRender) {
+  const headerHTML = `
+    <thead>
+      <tr>
+        <th>訂單編號</th>
+        <th>聯絡人</th>
+        <th>聯絡地址</th>
+        <th>電子郵件</th>
+        <th>訂單品項</th>
+        <th>訂單日期</th>
+        <th>訂單狀態</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+  `;
+
+  // ✅ 先有 headerHTML 才能用
+  if (!dataToRender || dataToRender.length === 0) {
+    orderTableDOM.innerHTML = headerHTML + `
+      <tbody>
         <tr>
-            <td>${order.id}</td>
-            <td>
-                <p>${order.user.name}</p>
-                <p>${order.user.tel}</p>
-            </td>
-            <td>${order.user.address}</td>
-            <td>${order.user.email}</td>
-            <td>
-                <p>${order.products[0].title}</p>
-            </td>
-            <td>${new Date(order.updatedAt * 1000).toLocaleDateString()}</td>
-            <td class="orderStatus">
-                <a href="#">未處理</a>
-            </td>
-            <td>
-                <input type="button" class="delSingleOrder-Btn" value="刪除" data-id="${order.id}">
-            </td>
+          <td colspan="8">目前沒有訂單</td>
         </tr>
-        `
-    }).join("");
-    const headerHTML = `<thead>
-                    <tr>
-                        <th>訂單編號</th>
-                        <th>聯絡人</th>
-                        <th>聯絡地址</th>
-                        <th>電子郵件</th>
-                        <th>訂單品項</th>
-                        <th>訂單日期</th>
-                        <th>訂單狀態</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>`
-    orderTableDOM.innerHTML = headerHTML + ordersHTML;
+      </tbody>
+    `;
+    return;
+  }
+
+  const ordersHTML = dataToRender.map((order) => {
+    return `
+      <tr>
+        <td>${order.id}</td>
+        <td>
+          <p>${order.user.name}</p>
+          <p>${order.user.tel}</p>
+        </td>
+        <td>${order.user.address}</td>
+        <td>${order.user.email}</td>
+        <td><p>${order.products[0]?.title || ''}</p></td>
+        <td>${new Date(order.updatedAt * 1000).toLocaleDateString()}</td>
+        <td class="orderStatus"><a href="#">未處理</a></td>
+        <td>
+          <input type="button" class="delSingleOrder-Btn" value="刪除" data-id="${order.id}">
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  orderTableDOM.innerHTML = headerHTML + `<tbody>${ordersHTML}</tbody>`;
 }
 
 
@@ -105,3 +119,39 @@ orderTableDOM.addEventListener('click', async (e) => {
   }
 });
 
+
+orderTableDOM.addEventListener('click', async (e) => {
+  const clearBtn = document.querySelector('.discardAllBtn');
+  clearBtn.preventDefault;
+  if (!clearBtn) return;
+
+
+
+  try {
+    const res = await axios.delete(
+      `${BASE_URL}/admin/${API_PATH}/orders`,
+      { headers: { Authorization: ADMIN_TOKEN } }
+    );
+
+
+    renderOrders(res.orders);
+  } catch (err) {
+    console.error('清除全部訂單失敗', err.response?.data || err);
+  }
+});
+
+discardAllBtnDOM.addEventListener('click', async (e) => {
+  e.preventDefault();
+
+  try {
+    const res = await axios.delete(
+      `${BASE_URL}/admin/${API_PATH}/orders`,
+      { headers: { Authorization: ADMIN_TOKEN } }
+    );
+
+    console.log('刪除全部訂單成功');
+    renderOrders(res.data.orders); 
+  } catch (err) {
+    console.error('清除全部訂單失敗', err.response?.data || err);
+  }
+});
