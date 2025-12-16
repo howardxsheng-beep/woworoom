@@ -1,12 +1,16 @@
 const BASE_URL = 'https://livejs-api.hexschool.io/api/livejs/v1';
 const API_PATH = 'ho';
 
+
+
 let cartData = {};
 let products = [];
 const productListDOM = document.querySelector('.productWrap');
 const productFilterDOM = document.querySelector('.productSelect');
 const productListElDOM = document.querySelector('.productWrap');
 const shoopingCartDOM = document.querySelector('.shoppingCart-table');
+const orderFormDOM = document.querySelector('.orderInfo-form');
+
 
 async function fetchProducts() {
     const res = await axios.get(`${BASE_URL}/customer/${API_PATH}/products`);
@@ -38,13 +42,13 @@ function renderList(dataToRender) {
     const listHTML = dataToRender.map((product) => {
         return `
         <li class="productCard">
-                <h4 class="productType">新品</h4>
-                <img src="${product.images}" alt="">
-                <a href="#" class="addCardBtn" data-id=${product.id}>加入購物車</a>
-                <h3>${product.title}</h3>
-                <del class="originPrice">NT$${product.origin_price}</del>
-                <p class="nowPrice">NT$${product.price}</p>
-            </li>
+            <h4 class="productType">新品</h4>
+            <img src="${product.images}" alt="">
+            <a href="#" class="addCardBtn" data-id=${product.id}>加入購物車</a>
+            <h3>${product.title}</h3>
+            <del class="originPrice">NT$${product.origin_price}</del>
+            <p class="nowPrice">NT$${product.price}</p>
+        </li>
         `
     }).join("");
     productListDOM.innerHTML = listHTML;
@@ -57,7 +61,6 @@ function addCart(){
 function renderCart(cartApiData) {
 
   const carts = cartApiData.carts || [];
-  const total = cartApiData.total || 0;
   const finalTotal = cartApiData.finalTotal || 0;
 
 
@@ -106,8 +109,15 @@ function renderCart(cartApiData) {
       <td>NT$${finalTotal}</td>
     </tr>
   `;
+  const carTableHeaders=`<tr>
+                    <th width="40%">品項</th>
+                    <th width="15%">單價</th>
+                    <th width="15%">數量</th>
+                    <th width="15%">金額</th>
+                    <th width="15%"></th>
+                </tr>`
 
-  shoopingCartDOM.innerHTML = cartRows + totalRow;
+  shoopingCartDOM.innerHTML = carTableHeaders + cartRows + totalRow;
 }
 
 function getQuantity(productId) {
@@ -174,5 +184,70 @@ shoopingCartDOM.addEventListener('click', async (e) => {
     renderCart(cartData);
   } catch (err) {
     console.error('刪除單一品項失敗', err.response?.data || err);
+  }
+});
+
+
+
+
+
+
+const fieldIds = ['customerName', 'customerPhone', 'customerEmail', 'customerAddress'];
+
+function validateOrderForm() {
+  let isValid = true;
+
+  fieldIds.forEach((id) => {
+    const input = document.querySelector(`#${id}`);
+    if (!input) return; 
+
+    const wrap = input.closest('.orderInfo-inputWrap'); 
+    const msg = wrap?.querySelector('.orderInfo-message'); 
+    if (!msg) return; 
+
+    const value = input.value.trim();
+    if (!value) {
+      msg.style.display = 'block';  
+      isValid = false;
+    } else {
+      msg.style.display = 'none';
+    }
+  });
+
+  return isValid;
+}
+
+orderFormDOM.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+
+  const Valid = validateOrderForm();
+  if (!Valid) return;
+
+
+  const name = document.querySelector('#customerName').value.trim();
+  const tel = document.querySelector('#customerPhone').value.trim();
+  const email = document.querySelector('#customerEmail').value.trim();
+  const address = document.querySelector('#customerAddress').value.trim();
+  const payment = document.querySelector('#tradeWay').value;
+
+
+  try {
+    const res = await axios.post(`${BASE_URL}/customer/${API_PATH}/orders`, {
+      data: {
+        user: { name, tel, email, address, payment }
+      }
+    });
+
+    console.log('訂單建立成功：', res.data);
+
+
+    cartData = await fetchCart();
+    renderCart(cartData);
+
+
+    orderFormDOM.reset();
+  } catch (err) {
+    console.error('送出訂單失敗', err);
   }
 });
