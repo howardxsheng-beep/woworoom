@@ -45,6 +45,7 @@ async function init() {
     }
 };
 
+
 function renderOrders(dataToRender) {
   const headerHTML = `
     <thead>
@@ -83,7 +84,11 @@ function renderOrders(dataToRender) {
         </td>
         <td>${order.user.address}</td>
         <td>${order.user.email}</td>
-        <td><p>${order.products[0]?.title || ''}</p></td>
+        <td>
+          ${(order.products)
+            .map(p => `<p>${p.title || ''} x ${p.quantity ?? 1}</p>`)
+            .join(' ')}
+        </td>
         <td>${new Date(order.updatedAt * 1000).toLocaleDateString()}</td>
         <td class="orderStatus"><a href="#">未處理</a></td>
         <td>
@@ -94,6 +99,12 @@ function renderOrders(dataToRender) {
   }).join("");
 
   orderTableDOM.innerHTML = headerHTML + `<tbody>${ordersHTML}</tbody>`;
+};
+
+function renderProductListHTML(products = []) {
+  return products
+    .map(p => `<p>${p.title || ''} x ${p.quantity ?? 1}</p>`)
+    .join('');
 }
 
 
@@ -120,25 +131,8 @@ orderTableDOM.addEventListener('click', async (e) => {
 });
 
 
-orderTableDOM.addEventListener('click', async (e) => {
-  const clearBtn = document.querySelector('.discardAllBtn');
-  clearBtn.preventDefault;
-  if (!clearBtn) return;
 
 
-
-  try {
-    const res = await axios.delete(
-      `${BASE_URL}/admin/${API_PATH}/orders`,
-      { headers: { Authorization: ADMIN_TOKEN } }
-    );
-
-
-    renderOrders(res.orders);
-  } catch (err) {
-    console.error('清除全部訂單失敗', err.response?.data || err);
-  }
-});
 
 discardAllBtnDOM.addEventListener('click', async (e) => {
   e.preventDefault();
