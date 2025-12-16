@@ -61,7 +61,7 @@ function renderOrders(dataToRender) {
     </thead>
   `;
 
-  // ✅ 先有 headerHTML 才能用
+
   if (!dataToRender || dataToRender.length === 0) {
     orderTableDOM.innerHTML = headerHTML + `
       <tbody>
@@ -155,3 +155,4 @@ discardAllBtnDOM.addEventListener('click', async (e) => {
     console.error('清除全部訂單失敗', err.response?.data || err);
   }
 });
+
