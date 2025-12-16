@@ -1,29 +1,12 @@
 const BASE_URL = 'https://livejs-api.hexschool.io/api/livejs/v1';
 const API_PATH = 'ho';
 const ADMIN_TOKEN = '98X6tvEMbQSon1wN2Z2Y9Wqf8iF3';
+let chart = null;
 
 const orderTableDOM = document.querySelector('.orderPage-table');
 const discardAllBtnDOM = document.querySelector('.discardAllBtn');
 
-// C3.js
-let chart = c3.generate({
-    bindto: '#chart', // HTML 元素綁定
-    data: {
-        type: "pie",
-        columns: [
-        ['Louvre 雙人床架', 1],
-        ['Antony 雙人床架', 2],
-        ['Anty 雙人床架', 3],
-        ['其他', 4],
-        ],
-        colors:{
-            "Louvre 雙人床架":"#DACBFF",
-            "Antony 雙人床架":"#9D7FEA",
-            "Anty 雙人床架": "#5434A7",
-            "其他": "#301E5F",
-        }
-    },
-});
+
 
 
 async function fetchOrders(){
@@ -36,8 +19,9 @@ async function fetchOrders(){
 async function init() {
     try {
         orders = await fetchOrders();
-        console.log(orders)
-        renderOrders(orders)
+        console.log(orders);
+        renderOrders(orders);
+        renderPieByProduct(orders); 
       
 
     } catch (error) {
@@ -87,7 +71,7 @@ function renderOrders(dataToRender) {
         <td>
           ${(order.products)
             .map(p => `<p>${p.title || ''} x ${p.quantity ?? 1}</p>`)
-            .join(' ')}
+            .join('')}
         </td>
         <td>${new Date(order.updatedAt * 1000).toLocaleDateString()}</td>
         <td class="orderStatus"><a href="#">未處理</a></td>
@@ -101,12 +85,56 @@ function renderOrders(dataToRender) {
   orderTableDOM.innerHTML = headerHTML + `<tbody>${ordersHTML}</tbody>`;
 };
 
-function renderProductListHTML(products = []) {
-  return products
-    .map(p => `<p>${p.title || ''} x ${p.quantity ?? 1}</p>`)
-    .join('');
+
+
+function getProductCount(orders) {
+  if (!orders || orders.length === 0) return {};
+
+  return orders.reduce((productObj, order) => {
+    if (!order.products || order.products.length === 0) return productObj;
+
+    order.products.forEach((product) => {
+      const title = product.title;
+      const price = Number(product.price) || 0;
+      const qty = Number(product.quantity) || 0;
+      const total = price * qty; 
+      productObj[title] = (productObj[title] || 0) + total;
+    });
+
+    return productObj;
+  }, {});
 }
 
+function toC3Columns(count) {
+  const columns = Object.entries(count).map(([title, count]) => [title, count]);
+  return columns.sort((a, b) => b[1] - a[1]); 
+}
+
+function initChart() {
+  chart = c3.generate({
+    bindto: '#chart',
+    data: {
+      type: 'pie',
+      columns: [['無資料', 1]],
+      colors: {
+        '無資料': '#301E5F'
+      }
+    }
+  });
+}
+
+
+function renderPieByProduct(orders) {
+  if (!chart) initChart();
+
+  const countProduct = getProductCount(orders);
+  const columns = toC3Columns(countProduct);
+
+  chart.load({
+    columns: columns.length ? columns : [['無資料', 1]],
+    unload: true, 
+  });
+}
 
 init();
 
@@ -123,8 +151,10 @@ orderTableDOM.addEventListener('click', async (e) => {
       `${BASE_URL}/admin/${API_PATH}/orders/${orderId}`,
       { headers: { Authorization: ADMIN_TOKEN } }
     );
+
     const orders = res.data.orders;  
     renderOrders(orders);
+    renderPieByProduct(orders);
   } catch (err) {
     console.error('刪除訂單失敗', err.response?.data || err);
   }
@@ -143,8 +173,10 @@ discardAllBtnDOM.addEventListener('click', async (e) => {
       { headers: { Authorization: ADMIN_TOKEN } }
     );
 
+
     console.log('刪除全部訂單成功');
     renderOrders(res.data.orders); 
+    initChart();
   } catch (err) {
     console.error('清除全部訂單失敗', err.response?.data || err);
   }
