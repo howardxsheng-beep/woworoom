@@ -227,10 +227,12 @@ function validateOrderForm() {
 
     const value = input.value.trim();
     if (!value) {
-      msg.style.display = 'block';  
+      msg.style.display = 'block';
+      input.classList.add('is-invalid');  
       isValid = false;
     } else {
       msg.style.display = 'none';
+      input.classList.remove('is-invalid');
     }
   });
 
