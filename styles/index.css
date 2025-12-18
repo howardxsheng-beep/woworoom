@@ -623,6 +623,12 @@ body {
 .shoppingCart-table tr:first-child, .shoppingCart-table tr:last-child {
   border-bottom: 0;
 }
+.cartQtyInput{
+  width: 70px;    
+  min-width: 70px;
+  text-align: center;
+  padding: 6px 8px;
+}
 
 @media (max-width: 767px) {
   .shoppingCart-table {
@@ -703,12 +709,15 @@ body {
   text-indent: 1rem;
   margin-right: 10px;
 }
-
+.orderInfo-input.is-invalid {
+  border-color: #C72424;
+}
 .orderInfo-inputWrap {
   position: relative;
 }
 
 .orderInfo-message {
+  display: none;      
   position: absolute;
   white-space: nowrap;
   left: 103%;
