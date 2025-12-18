@@ -703,7 +703,9 @@ body {
   text-indent: 1rem;
   margin-right: 10px;
 }
-
+.orderInfo-input.is-invalid {
+  border-color: #C72424;
+}
 .orderInfo-inputWrap {
   position: relative;
 }

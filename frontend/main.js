@@ -208,9 +208,13 @@ function validateOrderForm() {
     const value = input.value.trim();
     if (!value) {
       msg.style.display = 'block';  
+      input.classList.add('is-invalid')
+      
       isValid = false;
     } else {
       msg.style.display = 'none';
+      input.style.border = '1px solid #CED4DA'
+      input.classList.remove('is-invalid')
     }
   });
 
