@@ -623,6 +623,12 @@ body {
 .shoppingCart-table tr:first-child, .shoppingCart-table tr:last-child {
   border-bottom: 0;
 }
+.cartQtyInput{
+  width: 70px;    
+  min-width: 70px;
+  text-align: center;
+  padding: 6px 8px;
+}
 
 @media (max-width: 767px) {
   .shoppingCart-table {

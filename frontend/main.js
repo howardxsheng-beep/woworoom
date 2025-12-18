@@ -28,7 +28,7 @@ async function init() {
         renderList(products);
 
         cartData = await fetchCart();
-        console.log(cartData);
+
         renderCart(cartData);
 
     } catch (error) {
@@ -85,7 +85,16 @@ function renderCart(cartApiData) {
           </div>
         </td>
         <td>NT$${product.price}</td>
-        <td>${item.quantity}</td>
+        <td>
+          <input
+            type="number"
+            class="cartQtyInput"
+            min="1"
+            size="2"
+            value="${item.quantity}"
+            data-id="${item.id}"
+          />
+        </td>
         <td>NT$${product.price * qty}</td>
         <td class="discardBtn">
           <a href="#" class="material-icons" data-id="${item.id}">
@@ -121,8 +130,17 @@ function renderCart(cartApiData) {
 }
 
 function getQuantity(productId) {
-  const item = (cartData.carts || []).find(c => c.product.id === productId);
+  const item = (cartData.carts).find(cart => cart.product.id === productId);
   return (item?.quantity || 0) + 1;
+};
+async function updateCartItemQty(cartItemId, quantity) {
+  const response = await axios.patch(`${BASE_URL}/customer/${API_PATH}/carts`, {
+    data: {
+      id: cartItemId,
+      quantity
+    }
+  });
+  return response.data;
 }
 
 init();
@@ -156,11 +174,13 @@ productListElDOM.addEventListener('click', async (e)=>{
 });
 
 shoopingCartDOM.addEventListener('click', async (e) => {
-
+  
   const allBtn = e.target.closest('.discardAllBtn');
   if (allBtn) {
-    e.preventDefault();
     try {
+      const isConfirmed = window.confirm('確定要清除完整購物車？');
+      if (!isConfirmed) return;
+      e.preventDefault();
       await axios.delete(`${BASE_URL}/customer/${API_PATH}/carts`);
       cartData = await fetchCart();
       renderCart(cartData);
@@ -208,13 +228,9 @@ function validateOrderForm() {
     const value = input.value.trim();
     if (!value) {
       msg.style.display = 'block';  
-      input.classList.add('is-invalid')
-      
       isValid = false;
     } else {
       msg.style.display = 'none';
-      input.style.border = '1px solid #CED4DA'
-      input.classList.remove('is-invalid')
     }
   });
 
@@ -253,5 +269,29 @@ orderFormDOM.addEventListener('submit', async (e) => {
     orderFormDOM.reset();
   } catch (err) {
     console.error('送出訂單失敗', err);
+  }
+});
+
+shoopingCartDOM.addEventListener('change', async (e) => {
+  const qtyInput = e.target.closest('.cartQtyInput');
+  if (!qtyInput) return;
+
+  const cartItemId = qtyInput.dataset.id;
+  if (!cartItemId) return;
+
+
+  let nextQty = Number(qtyInput.value);
+  if (nextQty < 1) {
+    nextQty = 1;
+    qtyInput.value = 1;
+  }
+
+  try {
+    const updatedCart = await updateCartItemQty(cartItemId, nextQty);
+    cartData = updatedCart;
+    renderCart(cartData);
+  } catch (err) {
+    console.error('更新購物車數量失敗', err.response?.data || err);
+
   }
 });
