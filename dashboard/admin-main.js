@@ -21,7 +21,7 @@ async function init() {
         orders = await fetchOrders();
         console.log(orders);
         renderOrders(orders);
-        renderPieByProduct(orders); 
+        renderChartByProduct(orders); 
       
 
     } catch (error) {
@@ -40,7 +40,7 @@ function renderOrders(dataToRender) {
         <th>電子郵件</th>
         <th>訂單品項</th>
         <th>訂單日期</th>
-        <th>訂單狀態</th>
+        <th style="width: 10%;">訂單狀態</th>
         <th>操作</th>
       </tr>
     </thead>
@@ -70,11 +70,11 @@ function renderOrders(dataToRender) {
         <td>${order.user.email}</td>
         <td>
           ${(order.products)
-            .map(p => `<p>${p.title || ''} x ${p.quantity ?? 1}</p>`)
+            .map(product => `<p>${product.title || ''} x ${product.quantity ?? 1}</p>`)
             .join('')}
         </td>
-        <td>${new Date(order.updatedAt * 1000).toLocaleDateString()}</td>
-        <td class="orderStatus"><a href="#">未處理</a></td>
+        <td>${new Date(order.createdAt * 1000).toLocaleDateString()}</td>
+        <td class="orderStatus"><a href="#" data-id="${order.id}">${order.paid ? "已付款" : "未處理"}  </a></td>
         <td>
           <input type="button" class="delSingleOrder-Btn" value="刪除" data-id="${order.id}">
         </td>
@@ -124,7 +124,7 @@ function initChart() {
 }
 
 
-function renderPieByProduct(orders) {
+function renderChartByProduct(orders) {
   if (!chart) initChart();
 
   const countProduct = getProductCount(orders);
@@ -135,6 +135,18 @@ function renderPieByProduct(orders) {
     unload: true, 
   });
 }
+
+async function updateOrderPaid(orderId,paidStatus){
+ const response = await axios.put(`${BASE_URL}/admin/${API_PATH}/orders/`,{
+    data:{
+      id:orderId,
+      paid:paidStatus
+    }
+  },{
+    headers: { Authorization: ADMIN_TOKEN } 
+  });
+  return response.data.orders
+};
 
 init();
 
@@ -154,7 +166,7 @@ orderTableDOM.addEventListener('click', async (e) => {
 
     const orders = res.data.orders;  
     renderOrders(orders);
-    renderPieByProduct(orders);
+    renderChartByProduct(orders);
   } catch (err) {
     console.error('刪除訂單失敗', err.response?.data || err);
   }
@@ -166,6 +178,8 @@ orderTableDOM.addEventListener('click', async (e) => {
 
 discardAllBtnDOM.addEventListener('click', async (e) => {
   e.preventDefault();
+  const isConfirmed = window.confirm('確定要清除全部訂單嗎？此操作無法復原。');
+  if (!isConfirmed) return;
 
   try {
     const res = await axios.delete(
@@ -182,3 +196,26 @@ discardAllBtnDOM.addEventListener('click', async (e) => {
   }
 });
 
+
+orderTableDOM.addEventListener('click', async (e) => {
+  const statusBtn = e.target.closest('.orderStatus a');
+  if (!statusBtn) return;
+
+  e.preventDefault();
+
+  const orderId = statusBtn.dataset.id;
+  if (!orderId) return;
+
+
+  const isPaidNow = statusBtn.textContent.trim() === '已付款';
+  const nextPaid = !isPaidNow;
+
+  try {
+    const orders = await updateOrderPaid(orderId, nextPaid);
+    renderOrders(orders);
+
+  } catch (err) {
+    console.error('更新訂單狀態失敗', err.response?.data || err);
+    const failToPut = window.alert("更新訂單狀態失敗");
+  }
+});
